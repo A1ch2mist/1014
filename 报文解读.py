@@ -1,6 +1,6 @@
 #最终目标，建造一个报文解析类，拥有分离并解析每个部分的功能，并返回各个部分的值，供外部调用
 
-
+#解析控制域
 def parse_control_field(control_field,transmode):
     # 将控制域转换成二进制
     control_field2 = int(control_field, 16)
@@ -25,12 +25,12 @@ def parse_control_field(control_field,transmode):
 
             prm = binary[1]
             if prm == '1':
-                print(f'启动标志位 PRM：{prm} , (主站发送)')
+                print(f'启动标志位 PRM：{prm} , (启动站发送)')
             else:
-                print(f'启动标志位 PRM：{prm} , (从站发送)')
+                print(f'启动标志位 PRM：{prm} , (从动站发送)')
 
             fcb = binary[2]
-            print(f'帧计数位 FCB：{fcb} , (主站发送与从站发送一致)')
+            print(f'帧计数位 FCB：{fcb} , (启动站发送与从动站发送一致)')
 
             fcv = binary[3]
             print(f'帧计数位 FCV：{fcv} , (1表示 FCB 有效；0：表示 FCB 无效)')
@@ -60,9 +60,9 @@ def parse_control_field(control_field,transmode):
 
             prm = binary[1]
             if prm == '1':
-                print(f'启动标志位 PRM：{prm} , (主站发送)')
+                print(f'启动标志位 PRM：{prm} , (启动站发送)')
             else:
-                print(f'启动标志位 PRM：{prm} , (从站发送)')
+                print(f'启动标志位 PRM：{prm} , (从动站发送)')
 
             acd = binary[2]
             print(f'帧计数位 FCB：：{acd}  , (ACD=1 表示配电终端有 1 级数据等待访问；ACD=0 表示配电终端无 1 级数据等待访问)')
@@ -97,12 +97,12 @@ def parse_control_field(control_field,transmode):
 
                 prm = binary[1]
                 if prm == '1':
-                    print(f'启动标志位 PRM：{prm} , (主站发送)')
+                    print(f'启动标志位 PRM：{prm} , (启动站发送)')
                 else:
-                    print(f'启动标志位 PRM：{prm} , (从站发送)')
+                    print(f'启动标志位 PRM：{prm} , (从动站发送)')
 
                 fcb = binary[2]
-                print(f'帧计数位 FCB：{fcb} , (主站发送与从站发送一致)')
+                print(f'帧计数位 FCB：{fcb} , (启动站发送与从动站发送一致)')
 
                 fcv = binary[3]
                 print(f'帧计数位 FCV：{fcv} , (1表示 FCB 有效；0：表示 FCB 无效)')
@@ -128,15 +128,15 @@ def parse_control_field(control_field,transmode):
 
                 prm = binary[1]
                 if prm == '1':
-                    print(f'启动标志位 PRM：{prm} , (主站发送)')
+                    print(f'启动标志位 PRM：{prm} , (启动站发送)')
                 else:
-                    print(f'启动标志位 PRM：{prm} , (从站发送)')
+                    print(f'启动标志位 PRM：{prm} , (从动站发送)')
 
                 res = binary[2]
-                print(f'帧计数位 FCB：：{res} , (保留位 RES：设置为 0)')
+                print(f'保留位 RES：{res} , (保留位 RES：设置为 0)')
 
                 dfc = binary[3]
-                print(f'帧计数位 FCV：{dfc} , (1：表示从动站不能接收后续报文；0：表示从动站可以接收后续报文)')
+                print(f'数据流控制位 FCV：{dfc} , (1：表示从动站不能接收后续报文；0：表示从动站可以接收后续报文)')
 
                 fc = int(binary[4:8], 2)    # 二进制转换成十进制
                 if fc == 0:
@@ -312,7 +312,7 @@ def parse_asdu(message, startbyte):
         #测试命令
         elif type_id == 104:
             info_elements = message[startbyte + 7 : startbyte + 8]
-            print(f'固定测试字0Xaa55：{info_elements}')
+            print(f'固定测试字0xAA55：{info_elements}')
             info_elements_list.append(info_elements)        
 
         #不带时标单点信息或双点信息
@@ -427,38 +427,13 @@ def parse_asdu(message, startbyte):
                 info_elements_list.append(info_elements)        
 
 
-
-
-        
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
-
-
- 
-
-    
-    # print(f'信息对象地址：{info_object_address}')
-    # print(f'信息元素：{info_elements}')
-
     return {
         'type_id': type_id,
         'vsq': vsq,
         'cot': cot,
         'common_address': common_address,
-        'info_object_address': info_object_address,
-        'info_elements': info_elements,
+        'info_object_address': info_object_address_list,
+        'info_elements': info_elements_list,
     }
 
 def parse_message(message, transmode):
