@@ -21,7 +21,7 @@ def parse_control_field(control_field,transmode):
     # 非平衡链路传输模式
         if binary[0] == '0':
             res = binary[0]
-            print(f'传输方向位 DIR：{res} , (保留位 RES：设置为 0)')
+            print(f'保留位 RES：{res} , (保留位 RES：设置为 0)')
 
             prm = binary[1]
             if prm == '1':
@@ -277,49 +277,91 @@ def parse_asdu(message, startbyte):
     print(f'公共地址：{common_address}')
 
     # 解析ASDU信息对象地址
-    if binary_vsq[0] == '1':      #信息元素地址连续
+    # 信息元素地址连续SQ=1
+    if binary_vsq[0] == '1':
         info_object_address = message[startbyte + 6]+message[startbyte + 5]
         # info_object_address_list = []
         # info_object_address_list.append(info_object_address)
-        print(f'信息对象地址：{info_object_address}')
+        print(f'信息对象起始地址：{info_object_address}')
+
+
+        #总召唤
+        if type_id == 100:
+            info_elements = message[startbyte + 7 ]
+            print(f'总召唤：{info_elements}')
+            info_elements_list.append(info_elements)
+
+        #时钟同步/读取
+        elif type_id == 103:
+            info_elements = message[startbyte + 7 : startbyte + 14 ]
+            print(f'时钟同步：时间 {info_elements}')
+            info_elements_list.append(info_elements)
+
+         #复位进程命令
+        elif type_id == 105:
+            info_elements = message[startbyte + 7 ]
+            print(f'复位：{info_elements}， <1> 进程的总复位')
+            info_elements_list.append(info_elements)            
+
+        #初始化结束命令
+        elif type_id == 70:
+            info_elements = message[startbyte + 7 ]
+            print(f'初始化原因：{info_elements}， <0> 当地电源合上； <1> 当地手动复位； <2> 远方复位')
+            info_elements_list.append(info_elements)        
+
+        #测试命令
+        elif type_id == 104:
+            info_elements = message[startbyte + 7 : startbyte + 8]
+            print(f'固定测试字0Xaa55：{info_elements}')
+            info_elements_list.append(info_elements)        
 
         #不带时标单点信息或双点信息
-        if type_id == 1 or type_id == 3:        
+        elif type_id == 1 or type_id == 3:        
             for i in range(number_of_elements):
                 info_elements = message[startbyte + 7 + i ]
-                print(f'信息元素{i+1}：{info_object_address}')
+                print(f'遥信信息元素{i+1}：{info_elements}')
                 #遍历时建立一个新列表，存储信息元素，以便最终返回值给外部功能使用
                 info_elements_list.append(info_elements)
         #带时标单点信息或双点信息：按照 DL/T 634.5101-2002 规定，带长时标的单/双点信息遥信报文并不存在信息元素序列（SQ=1）的情况。
        
         #遥测信息
-        elif type_id == 9 :     #归一化值
+        elif type_id == 9:     #归一化值
             for i in range(number_of_elements):
                 info_elements = message[startbyte + 7 + 3*i : startbyte + 10 + 3*i ]
-                print(f'信息元素 {i+1}：归一化值：{info_elements[:2]}，品质描述词QDS：{info_elements[2]}')
+                print(f'遥测信息元素 {i+1}：归一化值：{info_elements[:2]}，品质描述词QDS：{info_elements[2]}')
                 info_elements_list.append(info_elements)
 
-        elif type_id == 13 :     #短浮点数
+        elif type_id == 13:     #短浮点数
             for i in range(number_of_elements):
                 info_elements = message[startbyte + 7 + 5*i : startbyte + 12 + 5*i ]
-                print(f'信息元素 {i+1}：归一化值：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}')
+                print(f'遥测信息元素 {i+1}：短浮点数：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}')
+                info_elements_list.append(info_elements)
+
+        #遥控在标准中只提了SQ=0的情形
+
+        #读取参数
+        elif type_id == 108:     
+            for i in range(number_of_elements):
+                info_elements = message[startbyte + 7 + 4*i : startbyte + 11 + 4*i ]
+                print(f'参数信息元素 {i+1}：短浮点数：{info_elements[:4]}')
+                info_elements_list.append(info_elements)
+
+        #预置/激活参数
+        elif type_id == 55:     
+            for i in range(number_of_elements):
+                info_elements = message[startbyte + 7 + 5*i : startbyte + 12 + 5*i ]
+                print(f'参数信息元素 {i+1}：短浮点数：{info_elements[:4]}， 设定命令限定词QOS：{info_elements[4]}')     #品质QOS=10000000=0x80，表示预置参数，QOS=00000000=0x00，表示执行激活参数
                 info_elements_list.append(info_elements)
 
 
-
-
-
-
-
-
-    if binary_vsq[0] =='0':      #信息元素地址不连续
-
+    # 信息元素地址不连续SQ=0
+    if binary_vsq[0] =='0':      
         #不带时标单点信息或双点信息
         if type_id == 1 or type_id == 3:        
             for i in range(number_of_elements):
                 info_object_address = message[startbyte + 6 + 3*i ]+message[startbyte + 5 + 3*i ]
                 info_elements = message[startbyte + 7 + 3*i ]
-                print(f'信息对象地址 {i+1}：{info_object_address}') 
+                print(f'遥信信息对象 {i+1} 地址：{info_object_address}') 
                 print(f'信息元素 {i+1}：{info_elements}')
                 #遍历时建立一个新列表，存储信息元素，以便最终返回值给外部功能使用
                 info_object_address_list.append(info_object_address)
@@ -330,51 +372,67 @@ def parse_asdu(message, startbyte):
             for i in range(number_of_elements):
                 info_object_address = message[startbyte + 6 + 10*i ]+message[startbyte + 5 + 10*i ]
                 info_elements = message[startbyte + 7 + 10*i ]
-                print(f'信息对象地址 {i+1}：{info_object_address}') 
+                print(f'遥信信息对象 {i+1} 地址：{info_object_address}') 
                 print(f'信息元素 {i+1}：{info_elements}')
                 info_object_address_list.append(info_object_address)
                 info_elements_list.append(info_elements)
 
         #遥测信息
-        elif type_id == 9 :     #归一化值
+        elif type_id == 9:     #归一化值
             for i in range(number_of_elements):
                 info_object_address = message[startbyte + 6 + 5*i ]+message[startbyte + 5 + 5*i ]
-                info_elements = message[startbyte + 7 + 5*i : startbyte + 10 + 5*i ]
-                print(f'信息对象地址 {i+1}：{info_object_address}') 
+                info_elements = message[startbyte + 7 + 5*i : startbyte + 10 + 5*i ]        #减去地址后的信息长度
+                print(f'遥测信息对象 {i+1} 地址：{info_object_address}') 
                 print(f'信息元素 {i+1}：归一化值：{info_elements[:2]}，品质描述词QDS：{info_elements[2]}')
                 info_object_address_list.append(info_object_address)
                 info_elements_list.append(info_elements)
 
-        elif type_id == 13 :     #段浮点数
+        elif type_id == 13:     #短浮点数
             for i in range(number_of_elements):
                 info_object_address = message[startbyte + 6 + 7*i ]+message[startbyte + 5 + 7*i ]
                 info_elements = message[startbyte + 7 + 7*i : startbyte + 12 + 7*i ]
-                print(f'信息对象地址 {i+1}：{info_object_address}') 
-                print(f'信息元素 {i+1}：归一化值：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}')
+                print(f'遥测信息对象 {i+1} 地址：{info_object_address}') 
+                print(f'信息元素 {i+1}：短浮点数：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}')
                 info_object_address_list.append(info_object_address)
                 info_elements_list.append(info_elements)
 
+        #遥控信息
+        elif type_id == 45 or type_id == 46:     #单点或双点遥控
+            for i in range(number_of_elements):
+                info_object_address = message[startbyte + 6 + 3*i ]+message[startbyte + 5 + 3*i ]
+                info_elements = message[startbyte + 7 + 3*i ]
+                print(f'遥控信息对象 {i+1} 地址：{info_object_address}') 
+                print(f'信息元素 {i+1}：单/双命令：{info_elements}')
+                info_object_address_list.append(info_object_address)
+                info_elements_list.append(info_elements)
 
+        #读取参数
+        elif type_id == 108:
+            for i in range(number_of_elements):
+                info_object_address = message[startbyte + 6 + 6*i ]+message[startbyte + 5 + 6*i ]
+                info_elements = message[startbyte + 7 + 6*i : startbyte + 11 + 6*i ]
+                print(f'参数信息对象 {i+1} 地址 ：{info_object_address}') 
+                print(f'信息元素 {i+1}：短浮点数：{info_elements[:4]}')     #需要转换为浮点数存储
+                info_object_address_list.append(info_object_address)
+                info_elements_list.append(info_elements)
 
+        #预置/激活参数
+        elif type_id == 55:
+            for i in range(number_of_elements):
+                info_object_address = message[startbyte + 6 + 7*i ]+message[startbyte + 5 + 7*i ]
+                info_elements = message[startbyte + 7 + 7*i : startbyte + 12 + 7*i ]
+                print(f'参数信息对象 {i+1} 地址 ：{info_object_address}') 
+                print(f'信息元素 {i+1}：短浮点数：{info_elements[:4]}， 设定命令限定词QOS：{info_elements[4]}')     #需要转换为浮点数存储
+                info_object_address_list.append(info_object_address)    #品质QOS=10000000=0x80，表示预置参数，QOS=00000000=0x00，表示执行激活参数
+                info_elements_list.append(info_elements)        
 
 
 
 
         
-        # if type_id == 1:
-        #     print(f'信息对象地址：{info_object_address} , (单点信息)')   
-        # elif type_id == 3:
-        #     print(f'信息对象地址：{info_object_address} , (双点信息)')
-        # elif type_id == 9:
-        #     print(f'信息对象地址：{info_object_address} , (测量值，归一化值)')
-        # elif type_id == 11:
-        #     print(f'信息对象地址：{info_object_address} , (测量值，标度化值)')
-        # elif type_id == 13:
-        #     print(f'信息对象地址：{info_object_address} , (测量值，短浮点数)')
-        # elif type_id == 30:
-        #     print(f'信息对象地址：{info_object_address} , (带CP56Time2a时标的单点信息)')
-        # elif type_id == 31:
-        #     print(f'信息对象地址：{info_object_address} , (带CP56Time2a时标的双点信息)')
+
+
+
 
 
 
@@ -482,7 +540,7 @@ def parse_message(message, transmode):
 
 # 主循环
 while True:
-    transmode = 1       # 1:非平衡传输模式， 2:平衡传输模式
+    transmode = 2       # 1:非平衡传输模式， 2:平衡传输模式
     message = input('请输入报文（输入0结束）：')
     if message == '0':
         break
