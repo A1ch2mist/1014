@@ -1,3 +1,5 @@
+#最终目标，建造一个报文解析类，拥有分离并解析每个部分的功能，并返回各个部分的值，供外部调用
+
 
 def parse_control_field(control_field,transmode):
     # 将控制域转换成二进制
@@ -169,10 +171,11 @@ def parse_asdu(message, startbyte):
     vsq = message[startbyte + 1]
     cot = message[startbyte + 2]
     common_address = message[startbyte + 4]+message[startbyte + 3]
-    info_object_address = None
+    info_object_address = None        #需要根据数据类型分别处理->279行
     info_elements = None
-    # info_object_address = message[startbyte + 6]+message[startbyte + 5]   数量不固定，暂时不解析
-    # info_elements = message[startbyte + 7]
+    info_object_address_list = []     #建立一个新列表，存储信息对象地址，以便最终返回值给外部功能使用->282行
+    info_elements_list = []
+
 
     # 解析ASDU类型标识符
     type_id = int(type_id, 16)
@@ -273,30 +276,105 @@ def parse_asdu(message, startbyte):
     # 解析ASDU公共地址
     print(f'公共地址：{common_address}')
 
-    # 解析ASDU信息对象地址``````````````````````````````
-    if binary_vsq[0] == '1':
+    # 解析ASDU信息对象地址
+    if binary_vsq[0] == '1':      #信息元素地址连续
         info_object_address = message[startbyte + 6]+message[startbyte + 5]
+        # info_object_address_list = []
+        # info_object_address_list.append(info_object_address)
         print(f'信息对象地址：{info_object_address}')
-    if binary_vsq[0] == '0':
-        if type_id == '1' or type_id == '3':
-            for i in range(number_of_elements):
-                info_object_address = message[startbyte + 6 + 3*i - 3]+message[startbyte + 5 + 3*i -3]
-                info_elements = message[startbyte + 7 + 3*i -3]
-                print(f'信息对象地址：{info_object_address}') 
-                print(f'信息元素：{info_elements}')
 
-        elif type_id == '3':
-            print(f'信息对象地址：{info_object_address} , (双点信息)')
-        elif type_id == '9':
-            print(f'信息对象地址：{info_object_address} , (测量值，归一化值)')
-        elif type_id == '11':
-            print(f'信息对象地址：{info_object_address} , (测量值，标度化值)')
-        elif type_id == '13':
-            print(f'信息对象地址：{info_object_address} , (测量值，短浮点数)')
-        elif type_id == '30':
-            print(f'信息对象地址：{info_object_address} , (带CP56Time2a时标的单点信息)')
-        elif type_id == '31':
-            print(f'信息对象地址：{info_object_address} , (带CP56Time2a时标的双点信息)')
+        #不带时标单点信息或双点信息
+        if type_id == 1 or type_id == 3:        
+            for i in range(number_of_elements):
+                info_elements = message[startbyte + 7 + i ]
+                print(f'信息元素{i+1}：{info_object_address}')
+                #遍历时建立一个新列表，存储信息元素，以便最终返回值给外部功能使用
+                info_elements_list.append(info_elements)
+        #带时标单点信息或双点信息：按照 DL/T 634.5101-2002 规定，带长时标的单/双点信息遥信报文并不存在信息元素序列（SQ=1）的情况。
+       
+        #遥测信息
+        elif type_id == 9 :     #归一化值
+            for i in range(number_of_elements):
+                info_elements = message[startbyte + 7 + 3*i : startbyte + 10 + 3*i ]
+                print(f'信息元素 {i+1}：归一化值：{info_elements[:2]}，品质描述词QDS：{info_elements[2]}')
+                info_elements_list.append(info_elements)
+
+        elif type_id == 13 :     #短浮点数
+            for i in range(number_of_elements):
+                info_elements = message[startbyte + 7 + 5*i : startbyte + 12 + 5*i ]
+                print(f'信息元素 {i+1}：归一化值：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}')
+                info_elements_list.append(info_elements)
+
+
+
+
+
+
+
+
+    if binary_vsq[0] =='0':      #信息元素地址不连续
+
+        #不带时标单点信息或双点信息
+        if type_id == 1 or type_id == 3:        
+            for i in range(number_of_elements):
+                info_object_address = message[startbyte + 6 + 3*i ]+message[startbyte + 5 + 3*i ]
+                info_elements = message[startbyte + 7 + 3*i ]
+                print(f'信息对象地址 {i+1}：{info_object_address}') 
+                print(f'信息元素 {i+1}：{info_elements}')
+                #遍历时建立一个新列表，存储信息元素，以便最终返回值给外部功能使用
+                info_object_address_list.append(info_object_address)
+                info_elements_list.append(info_elements)
+
+        #带时标单点信息或双点信息       
+        elif type_id == 30 or type_id == 31:
+            for i in range(number_of_elements):
+                info_object_address = message[startbyte + 6 + 10*i ]+message[startbyte + 5 + 10*i ]
+                info_elements = message[startbyte + 7 + 10*i ]
+                print(f'信息对象地址 {i+1}：{info_object_address}') 
+                print(f'信息元素 {i+1}：{info_elements}')
+                info_object_address_list.append(info_object_address)
+                info_elements_list.append(info_elements)
+
+        #遥测信息
+        elif type_id == 9 :     #归一化值
+            for i in range(number_of_elements):
+                info_object_address = message[startbyte + 6 + 5*i ]+message[startbyte + 5 + 5*i ]
+                info_elements = message[startbyte + 7 + 5*i : startbyte + 10 + 5*i ]
+                print(f'信息对象地址 {i+1}：{info_object_address}') 
+                print(f'信息元素 {i+1}：归一化值：{info_elements[:2]}，品质描述词QDS：{info_elements[2]}')
+                info_object_address_list.append(info_object_address)
+                info_elements_list.append(info_elements)
+
+        elif type_id == 13 :     #段浮点数
+            for i in range(number_of_elements):
+                info_object_address = message[startbyte + 6 + 7*i ]+message[startbyte + 5 + 7*i ]
+                info_elements = message[startbyte + 7 + 7*i : startbyte + 12 + 7*i ]
+                print(f'信息对象地址 {i+1}：{info_object_address}') 
+                print(f'信息元素 {i+1}：归一化值：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}')
+                info_object_address_list.append(info_object_address)
+                info_elements_list.append(info_elements)
+
+
+
+
+
+
+
+        
+        # if type_id == 1:
+        #     print(f'信息对象地址：{info_object_address} , (单点信息)')   
+        # elif type_id == 3:
+        #     print(f'信息对象地址：{info_object_address} , (双点信息)')
+        # elif type_id == 9:
+        #     print(f'信息对象地址：{info_object_address} , (测量值，归一化值)')
+        # elif type_id == 11:
+        #     print(f'信息对象地址：{info_object_address} , (测量值，标度化值)')
+        # elif type_id == 13:
+        #     print(f'信息对象地址：{info_object_address} , (测量值，短浮点数)')
+        # elif type_id == 30:
+        #     print(f'信息对象地址：{info_object_address} , (带CP56Time2a时标的单点信息)')
+        # elif type_id == 31:
+        #     print(f'信息对象地址：{info_object_address} , (带CP56Time2a时标的双点信息)')
 
 
 
