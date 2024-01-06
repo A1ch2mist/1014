@@ -19,50 +19,41 @@ def parse_control_field(control_field,transmode):
 
     if transmode == 1:
     # 非平衡链路传输模式
-        if binary[0] == '0':
+        if binary[1] == '0':
             res = binary[0]
             print(f'保留位 RES：{res} , (保留位 RES：设置为 0)')
 
             prm = binary[1]
-            if prm == '1':
-                print(f'启动标志位 PRM：{prm} , (启动站发送)')
-            else:
-                print(f'启动标志位 PRM：{prm} , (从动站发送)')
+            print(f'启动标志位 PRM：{prm} , (从动站发送)')
 
             fcb = binary[2]
             print(f'帧计数位 FCB：{fcb} , (启动站发送与从动站发送一致)')
 
             fcv = binary[3]
             print(f'帧计数位 FCV：{fcv} , (1表示 FCB 有效；0：表示 FCB 无效)')
-
+           
             fc = int(binary[4:8], 2)    # 二进制转换成十进制
+            #从动站发送
             if fc == 0:
-                print(f'功能码 FC：{fc} , (启动方向:复位远方链路；从动方向：<0>确认：认可 <1>确认：否定认可)')
+                print(f'功能码 FC：{fc} , (从动方向：确认：认可)')
             elif fc == 1:
-                print(f'功能码 FC：{fc} , (启动方向:复位用户进程；从动方向：<0>确认：认可 <1>确认：否定认可)')
-            elif fc == 3:
-                print(f'功能码 FC：{fc} , (启动方向:发送/确认用户数据；从动方向：<0>确认：认可 <1>确认：否定认可)')
-            elif fc == 4:
-                print(f'功能码 FC：{fc} , (启动方向:发送/无回答用户数据；从动方向：无回答)')
+                print(f'功能码 FC：{fc} , (从动方向：确认：否定认可)')
             elif fc == 8:
-                print(f'功能码 FC：{fc} , (启动方向:访问请求；从动方向：<11>响应：链路状态)')
+                print(f'功能码 FC：{fc} , (从动方向：响应：用户数据)')
             elif fc == 9:
-                print(f'功能码 FC：{fc} , (启动方向:请求/响应请求链路状态；从动方向：<11>响应：链路状态)')
-            elif fc == 10:
-                print(f'功能码 FC：{fc} , (启动方向:请求/响应请求 1 级用户数据；从动方向：<8>响应：用户数据 <9>响应：无所请求的用户数据)')
+                print(f'功能码 FC：{fc} , (从动方向：响应：无所请求的用户数据)')
             elif fc == 11:
-                print(f'功能码 FC：{fc} , (启动方向:请求/响应请求 2 级用户数据；从动方向：<8>响应：用户数据 <9>响应：无所请求的用户数据)')
+                print(f'功能码 FC：{fc} , (从动方向：响应：链路状态)')
+            else:
+                print(f'功能码 FC：{fc} , (从动方向:未知)')
 
 
-        if binary[0] == '1':
+        if binary[1] == '1':
             res = binary[0]
             print(f'传输方向位 DIR：{res} , (保留位 RES：设置为 0)')
 
             prm = binary[1]
-            if prm == '1':
-                print(f'启动标志位 PRM：{prm} , (启动站发送)')
-            else:
-                print(f'启动标志位 PRM：{prm} , (从动站发送)')
+            print(f'启动标志位 PRM：{prm} , (启动站发送)')
 
             acd = binary[2]
             print(f'帧计数位 FCB：：{acd}  , (ACD=1 表示配电终端有 1 级数据等待访问；ACD=0 表示配电终端无 1 级数据等待访问)')
@@ -71,22 +62,25 @@ def parse_control_field(control_field,transmode):
             print(f'帧计数位 FCV：{dfc} , (1：表示从动站不能接收后续报文；0：表示从动站可以接收后续报文)')
 
             fc = int(binary[4:8], 2)    # 二进制转换成十进制
+            #启动站发送
             if fc == 0:
-                print(f'功能码 FC：{fc} , (启动方向:复位远方链路；从动方向：<0>确认：认可 <1>确认：否定认可)')
+                print(f'功能码 FC：{fc} , (启动方向:复位远方链路)')
             elif fc == 1:
-                print(f'功能码 FC：{fc} , (启动方向:复位用户进程；从动方向：<0>确认：认可 <1>确认：否定认可)')
+                print(f'功能码 FC：{fc} , (启动方向:复位用户进程)')
             elif fc == 3:
-                print(f'功能码 FC：{fc} , (启动方向:发送/确认用户数据；从动方向：<0>确认：认可 <1>确认：否定认可)')
+                print(f'功能码 FC：{fc} , (启动方向:发送/确认用户数据)')
             elif fc == 4:
-                print(f'功能码 FC：{fc} , (启动方向:发送/无回答用户数据；从动方向：无回答)')
+                print(f'功能码 FC：{fc} , (启动方向:发送/无回答用户数据)')
             elif fc == 8:
-                print(f'功能码 FC：{fc} , (启动方向:访问请求；从动方向：<11>响应：链路状态)')
+                print(f'功能码 FC：{fc} , (启动方向:访问请求；从动方向)')
             elif fc == 9:
-                print(f'功能码 FC：{fc} , (启动方向:请求/响应请求链路状态；从动方向：<11>响应：链路状态)')
+                print(f'功能码 FC：{fc} , (启动方向:请求/响应请求链路状态)')
             elif fc == 10:
-                print(f'功能码 FC：{fc} , (启动方向:请求/响应请求 1 级用户数据；从动方向：<8>响应：用户数据 <9>响应：无所请求的用户数据)')
+                print(f'功能码 FC：{fc} , (启动方向:请求/响应请求 1 级用户数据)')
             elif fc == 11:
-                print(f'功能码 FC：{fc} , (启动方向:请求/响应请求 2 级用户数据；从动方向：<8>响应：用户数据 <9>响应：无所请求的用户数据)')
+                print(f'功能码 FC：{fc} , (启动方向:请求/响应请求 2 级用户数据)')
+            else:
+                print(f'功能码 FC：{fc} , (启动方向:未知)')
 
 
     if transmode == 2:
@@ -108,18 +102,30 @@ def parse_control_field(control_field,transmode):
                 print(f'帧计数位 FCV：{fcv} , (1表示 FCB 有效；0：表示 FCB 无效)')
 
                 fc = int(binary[4:8], 2)    # 二进制转换成十进制
-                if fc == 0:
-                    print(f'功能码 FC：{fc} , (启动方向:复位远方链路；从动方向：<0>确认：认可 <1>确认：否定认可)')
-                elif fc == 1:
-                    print(f'功能码 FC：{fc} , (启动方向:复位用户进程；从动方向：<0>确认：认可 <1>确认：否定认可)')
-                elif fc == 2:
-                    print(f'功能码 FC：{fc} , (启动方向:发送/确认链路测试功能；从动方向：<0>确认：认可 <1>确认：否定认可)')
-                elif fc == 3:
-                    print(f'功能码 FC：{fc} , (启动方向:发送/确认用户数据；从动方向：<0>确认：认可 <1>确认：否定认可)')
-                elif fc == 4:
-                    print(f'功能码 FC：{fc} , (启动方向:发送/无回答用户数据；从动方向：无回答)')
-                elif fc == 9:
-                    print(f'功能码 FC：{fc} , (启动方向:请求/响应请求链路状态；从动方向：<11>响应：链路状态)')
+                if prm == '1':      #启动站发送
+                    if fc == 0:
+                        print(f'功能码 FC：{fc} , (启动方向:复位远方链路)')
+                    elif fc == 1:
+                        print(f'功能码 FC：{fc} , (启动方向:复位用户进程)')
+                    elif fc == 2:
+                        print(f'功能码 FC：{fc} , (启动方向:发送/确认链路测试功能)')
+                    elif fc == 3:
+                        print(f'功能码 FC：{fc} , (启动方向:发送/确认用户数据)')
+                    elif fc == 4:
+                        print(f'功能码 FC：{fc} , (启动方向:发送/无回答用户数据)')
+                    elif fc == 9:
+                        print(f'功能码 FC：{fc} , (启动方向:请求/响应请求链路状态)')
+                    else:
+                        print(f'功能码 FC：{fc} , (启动方向:未知)')
+                elif prm == '0':    #从动站发送        
+                    if fc == 0:
+                        print(f'功能码 FC：{fc} , (从动方向：确认：认可)')
+                    elif fc == 1:
+                        print(f'功能码 FC：{fc} , (从动方向：确认：否定认可)')
+                    elif fc == 9:
+                        print(f'功能码 FC：{fc} , (从动方向：响应：链路状态)')
+                    else:
+                        print(f'功能码 FC：{fc} , (从动方向:未知)')
 
 
             if binary[0] == '1':      #上行
@@ -139,18 +145,31 @@ def parse_control_field(control_field,transmode):
                 print(f'数据流控制位 FCV：{dfc} , (1：表示从动站不能接收后续报文；0：表示从动站可以接收后续报文)')
 
                 fc = int(binary[4:8], 2)    # 二进制转换成十进制
-                if fc == 0:
-                    print(f'功能码 FC：{fc} , (启动方向:复位远方链路；从动方向：<0>确认：认可 <1>确认：否定认可)')
-                elif fc == 1:
-                    print(f'功能码 FC：{fc} , (启动方向:复位用户进程；从动方向：<0>确认：认可 <1>确认：否定认可)')
-                elif fc == 2:
-                    print(f'功能码 FC：{fc} , (启动方向:发送/确认链路测试功能；从动方向：<0>确认：认可 <1>确认：否定认可)')
-                elif fc == 3:
-                    print(f'功能码 FC：{fc} , (启动方向:发送/确认用户数据；从动方向：<0>确认：认可 <1>确认：否定认可)')
-                elif fc == 4:
-                    print(f'功能码 FC：{fc} , (启动方向:发送/无回答用户数据；从动方向：无回答)')
-                elif fc == 9:
-                    print(f'功能码 FC：{fc} , (启动方向:请求/响应请求链路状态；从动方向：<11>响应：链路状态)')
+                if prm == '1':      #启动站发送
+                    if fc == 0:
+                        print(f'功能码 FC：{fc} , (启动方向:复位远方链路)')
+                    elif fc == 1:
+                        print(f'功能码 FC：{fc} , (启动方向:复位用户进程)')
+                    elif fc == 2:
+                        print(f'功能码 FC：{fc} , (启动方向:发送/确认链路测试功能)')
+                    elif fc == 3:
+                        print(f'功能码 FC：{fc} , (启动方向:发送/确认用户数据)')
+                    elif fc == 4:
+                        print(f'功能码 FC：{fc} , (启动方向:发送/无回答用户数据)')
+                    elif fc == 9:
+                        print(f'功能码 FC：{fc} , (启动方向:请求/响应请求链路状态)')
+                    else:
+                        print(f'功能码 FC：{fc} , (启动方向:未知)')
+                elif prm == '0':    #从动站发送        
+                    if fc == 0:
+                        print(f'功能码 FC：{fc} , (从动方向：确认：认可)')
+                    elif fc == 1:
+                        print(f'功能码 FC：{fc} , (从动方向：确认：否定认可)')
+                    elif fc == 11:
+                        print(f'功能码 FC：{fc} , (从动方向：响应：链路状态)')
+                    else:  
+                        print(f'功能码 FC：{fc} , (从动方向:未知)')
+
 
     return {
         'RES': res,
