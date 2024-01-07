@@ -1,5 +1,40 @@
 #最终目标，建造一个报文解析类，拥有分离并解析每个部分的功能，并返回各个部分的值，供外部调用
 
+# 定义一个函数来解析CP56Time2a格式的时间
+def parse_cp56time2a(byte_data):
+    if len(byte_data) != 7:
+        raise ValueError("Invalid CP56Time2a data length.")
+    
+    # 按照大端格式解析字节数据
+    milliseconds = (byte_data[0] << 8) + byte_data[1]
+    minute = byte_data[2] & 0x3F
+    iv_flag = (byte_data[2] & 0x80) >> 7
+    hour = byte_data[3] & 0x1F
+    su_flag = (byte_data[3] & 0x80) >> 7
+    day_of_month = byte_data[4] & 0x1F
+    day_of_week = (byte_data[4] & 0xE0) >> 5
+    month = byte_data[5] & 0x0F
+    year = byte_data[6] & 0x7F
+    
+    # 构建并返回一个包含解析时间的字典
+    parsed_time = {
+        'milliseconds': milliseconds,
+        'minute': minute,
+        'hour': hour,
+        'day_of_month': day_of_month,
+        'day_of_week': day_of_week,
+        'month': month,
+        'year': year + 2000,  # 年份是从2000年开始的偏移量
+        'su_flag': su_flag,
+        'iv_flag': iv_flag
+    }
+    
+    print(f'{year+2000}/{month}/{day_of_month} {hour}:{minute}:{milliseconds}')
+
+    return parsed_time
+
+
+
 #解析控制域
 def parse_control_field(control_field,transmode):
     # 将控制域转换成二进制
@@ -308,6 +343,7 @@ def parse_asdu(message, startbyte):
     # 解析ASDU公共地址
     print(f'公共地址：{common_address}')
 
+    #解析参数特征标识函数
     def parse_cp8(hex_str):
         # 将16进制字符串转换为二进制字符串
         bin_str = bin(int(hex_str, 16))[2:].zfill(8)
@@ -353,6 +389,9 @@ def parse_asdu(message, startbyte):
             print(f'遥信信息对象地址：{info_object_address}') 
             info_elements = message[startbyte + 8 : startbyte + 15 ]
             print(f'时钟同步：时间 {info_elements}')
+            info_time = info_elements
+            CP56_time = bytes(int(x, 16) for x in info_time.split())
+            parsed_time = parse_cp56time2a(CP56_time)    #返回值为解析后各部分的字典变量
             info_object_address_list.append(info_object_address)
             info_elements_list.append(info_elements)
 
@@ -475,6 +514,9 @@ def parse_asdu(message, startbyte):
                 info_elements = message[startbyte + 8 + 14*i : startbyte + 20 + 14*i]
                 print(f'电能量数据对象 {i+1} 地址：{info_object_address}') 
                 print(f'信息元素 {i+1}：短浮点数：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}，时标 CP56Time2a：{info_elements[5:]}')
+                info_time = info_elements[5:]
+                CP56_time = bytes(int(x, 16) for x in info_time.split())
+                parsed_time = parse_cp56time2a(CP56_time)    #返回值为解析后各部分的字典变量
                 info_object_address_list.append(info_object_address)
                 info_elements_list.append(info_elements)
 
@@ -643,6 +685,9 @@ def parse_asdu(message, startbyte):
             for i in range(number_of_elements):
                 info_elements = message[startbyte + 8 + 12*i : startbyte + 20 + 12*i]
                 print(f'电能量数据元素 {i+1}：短浮点数：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}，时标 CP56Time2a：{info_elements[5:]}')
+                info_time = info_elements[5:]
+                CP56_time = bytes(int(x, 16) for x in info_time.split())
+                parsed_time = parse_cp56time2a(CP56_time)    #返回值为解析后各部分的字典变量
                 info_elements_list.append(info_elements)
 
         #切换定值区
