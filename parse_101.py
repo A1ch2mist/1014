@@ -222,7 +222,7 @@ def parse_asdu(message, startbyte):
     cot = message[startbyte + 3] + message[startbyte + 2]
     common_address = message[startbyte + 5] + message[startbyte + 4]
     constant_alue_area_code = []
-    info_pi = []
+    info_pi = ''
     info_object_address = None        #需要根据数据类型分别处理->279行
     info_elements = None
     info_object_address_list = []     #建立一个新列表，存储信息对象地址，以便最终返回值给外部功能使用->282行
@@ -271,6 +271,10 @@ def parse_asdu(message, startbyte):
         print(f'类型标识符：{type_id} , 读参数和定值')
     elif type_id == 203:
         print(f'类型标识符：{type_id} , 写参数和定值')
+    elif type_id == 206:
+        print(f'类型标识符：{type_id} , 累计量，短浮点数')
+    elif type_id == 207:
+        print(f'类型标识符：{type_id} , 带 CP56Time2a 时标的累计量，短浮点数')
     elif type_id == 210:
         print(f'类型标识符：{type_id} , 文件传输')
     elif type_id == 211:
@@ -389,7 +393,7 @@ def parse_asdu(message, startbyte):
             info_elements = message[startbyte + 8 : startbyte + 15 ]
             print(f'时钟同步：时间 {info_elements}')
             info_time = info_elements
-            CP56_time = bytes(int(x, 16) for x in info_time.split())
+            CP56_time = bytes(int(x, 16) for x in info_time)
             parsed_time = parse_cp56time2a(CP56_time)    #返回值为解析后各部分的字典变量
             info_object_address_list.append(info_object_address)
             info_elements_list.append(info_elements)
@@ -514,7 +518,7 @@ def parse_asdu(message, startbyte):
                 print(f'电能量数据对象 {i+1} 地址：{info_object_address}') 
                 print(f'信息元素 {i+1}：短浮点数：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}，时标 CP56Time2a：{info_elements[5:]}')
                 info_time = info_elements[5:]
-                CP56_time = bytes(int(x, 16) for x in info_time.split())
+                CP56_time = bytes(int(x, 16) for x in info_time)
                 parsed_time = parse_cp56time2a(CP56_time)    #返回值为解析后各部分的字典变量
                 info_object_address_list.append(info_object_address)
                 info_elements_list.append(info_elements)
@@ -568,20 +572,20 @@ def parse_asdu(message, startbyte):
             elif cot == 7:  #监视方向
                 constant_alue_area_code = message[startbyte + 7] + message[startbyte + 6]
                 print(f'上传定值区{constant_alue_area_code}中的参数和定值')
-                info_pi == message[startbyte + 8]
+                info_pi = message[startbyte + 8]
                 print(f'参数特征标识{info_pi}')
                 parse_cp8(info_pi)
                 j =0
                 for i in range(number_of_elements):
                     info_object_address = message[startbyte + 10 + j]+message[startbyte + 9 +j]
                     print(f'信息体{i+1}地址：{info_object_address}')
-                    info_tag = message[startbyte + 11]
+                    info_tag = message[startbyte + 11 +j]
                     print(f'tag类型：{info_tag}')
                     info_length = int(message[startbyte + 12 + j], 16)
-                    print(f'数据长度：{message[startbyte + 11]}')
-                    info_elements = message[startbyte + 12: startbyte + 12 + info_length + j]
+                    print(f'数据长度：{info_length}')
+                    info_elements = message[startbyte + 13 +j: startbyte + 13 + info_length + j]
                     print(f'信息体{i+1}值：{info_elements}')                                             
-                    j = info_length + 4
+                    j += info_length + 4
                     info_object_address_list.append(info_object_address)
                     info_elements_list.append(info_elements)
 
@@ -590,26 +594,26 @@ def parse_asdu(message, startbyte):
             if number_of_elements != 0:  #写多个参数和定值
                 constant_alue_area_code = message[startbyte + 7] + message[startbyte + 6]
                 print(f'写定值区{constant_alue_area_code}中的参数和定值')
-                info_pi == message[startbyte + 8]
+                info_pi = message[startbyte + 8]
                 print(f'参数特征标识{info_pi}')
                 parse_cp8(info_pi)
                 j =0
                 for i in range(number_of_elements):
                     info_object_address = message[startbyte + 10 + j]+message[startbyte + 9 +j]
                     print(f'信息体{i+1}地址：{info_object_address}')
-                    info_tag = message[startbyte + 11]
+                    info_tag = message[startbyte + 11 + j]
                     print(f'tag类型：{info_tag}')
                     info_length = int(message[startbyte + 12 + j], 16)
-                    print(f'数据长度：{message[startbyte + 11]}')
-                    info_elements = message[startbyte + 12: startbyte + 12 + info_length + j]
+                    print(f'数据长度：{info_length}')
+                    info_elements = message[startbyte + 13+j: startbyte + 13 + info_length + j]
                     print(f'信息体{i+1}值：{info_elements}')                                             
-                    j = info_length + 4
+                    j += info_length + 4
                     info_object_address_list.append(info_object_address)
                     info_elements_list.append(info_elements)
             else:
                 constant_alue_area_code = message[startbyte + 7] + message[startbyte + 6]
                 print(f'固化/撤销写定值区{constant_alue_area_code}中的参数和定值')
-                info_pi == message[startbyte + 8]
+                info_pi = message[startbyte + 8]
                 print(f'参数特征标识{info_pi}')
                 parse_cp8(info_pi)
                 info_object_address = []
@@ -685,7 +689,7 @@ def parse_asdu(message, startbyte):
                 info_elements = message[startbyte + 8 + 12*i : startbyte + 20 + 12*i]
                 print(f'电能量数据元素 {i+1}：短浮点数：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}，时标 CP56Time2a：{info_elements[5:]}')
                 info_time = info_elements[5:]
-                CP56_time = bytes(int(x, 16) for x in info_time.split())
+                CP56_time = bytes(int(x, 16) for x in info_time)
                 parsed_time = parse_cp56time2a(CP56_time)    #返回值为解析后各部分的字典变量
                 info_elements_list.append(info_elements)
 
@@ -695,21 +699,6 @@ def parse_asdu(message, startbyte):
                 info_elements = message[startbyte + 9 + 1*i ] + message[startbyte + 8 + 1*i ]
                 print(f'定值区号：{info_elements}')
                 info_elements_list.append(info_elements)
-
-        #读取参数
-        elif type_id == 108:     
-            for i in range(number_of_elements):
-                info_elements = message[startbyte + 7 + 4*i : startbyte + 11 + 4*i ]
-                print(f'参数信息元素 {i+1}：短浮点数：{info_elements[:4]}')
-                info_elements_list.append(info_elements)
-
-        #预置/激活参数
-        elif type_id == 55:     
-            for i in range(number_of_elements):
-                info_elements = message[startbyte + 7 + 5*i : startbyte + 12 + 5*i ]
-                print(f'参数信息元素 {i+1}：短浮点数：{info_elements[:4]}， 设定命令限定词QOS：{info_elements[4]}')     #品质QOS=10000000=0x80，表示预置参数，QOS=00000000=0x00，表示执行激活参数
-                info_elements_list.append(info_elements)
-
 
     return {
         'type_id': type_id,
