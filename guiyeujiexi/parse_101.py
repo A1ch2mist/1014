@@ -785,11 +785,11 @@ def parse_message(message, transmode):
         print(f'结束字符：{end_character}')
 
 
-
-# 主循环
-while True:
-    transmode = 2       # 1:非平衡传输模式， 2:平衡传输模式
-    message = input('请输入报文（输入0结束）：')
-    if message == '0':
-        break
-    parse_message(message, transmode)
+if __name__ == '__main__':
+    # 主循环
+    while True:
+        transmode = 2       # 1:非平衡传输模式， 2:平衡传输模式
+        message = input('请输入报文（输入0结束）：')
+        if message == '0':
+            break
+        parse_message(message, transmode)

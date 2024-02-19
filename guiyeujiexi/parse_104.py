@@ -100,6 +100,7 @@ def parse_asdu(message, startbyte, isu):
         info_elements = None
         info_object_address_list = []     #建立一个新列表，存储信息对象地址，以便最终返回值给外部功能使用->282行
         info_elements_list = []
+        info_time_list = []
 
 
         # 解析ASDU类型标识符
@@ -342,7 +343,8 @@ def parse_asdu(message, startbyte, isu):
             elif type_id == 210:
                 info_object_address = [] 
                 info_elements = message[startbyte + 6 :]
-                print(f'信息对象：{info_elements}')
+                gapless_docinfo = ''.join(info_elements)
+                print(f'信息对象：{gapless_docinfo}')
                 info_object_address_list.append(info_object_address)
                 info_elements_list.append(info_elements)
 
@@ -369,12 +371,16 @@ def parse_asdu(message, startbyte, isu):
             #带时标单点信息或双点信息       
             elif type_id == 30 or type_id == 31:
                 for i in range(number_of_elements):
-                    info_object_address = message[startbyte + 8 + 10*i ]+message[startbyte + 7 + 10*i ]+message[startbyte + 6 + 10*i ]
-                    info_elements = message[startbyte + 9 + 10*i ]
+                    info_object_address = message[startbyte + 8 + 11*i ]+message[startbyte + 7 + 11*i ]+message[startbyte + 6 + 11*i ]
+                    info_elements = message[startbyte + 9 + 11*i ]                  
                     print(f'遥信信息对象 {i+1} 地址：{info_object_address}') 
                     print(f'信息元素 {i+1}：{info_elements}')
+                    info_time = message[startbyte + 10 + 11*i : startbyte + 17 + 11*i ]
+                    CP56_time = bytes(int(x, 16) for x in info_time)
+                    parsed_time = parse_cp56time2a(CP56_time)
                     info_object_address_list.append(info_object_address)
                     info_elements_list.append(info_elements)
+                    info_time_list.append(parsed_time)
 
             #遥测信息
             elif type_id == 9:     #归一化值
@@ -427,6 +433,7 @@ def parse_asdu(message, startbyte, isu):
                     parsed_time = parse_cp56time2a(CP56_time)    #返回值为解析后各部分的字典变量
                     info_object_address_list.append(info_object_address)
                     info_elements_list.append(info_elements)
+                    info_time_list.append(parsed_time)
 
             #切换定值区
             elif type_id == 200:     
@@ -562,9 +569,13 @@ def parse_asdu(message, startbyte, isu):
             if type_id == 30 or type_id == 31:        
                 for i in range(number_of_elements):
                     info_elements = message[startbyte + 8 + 8*i ]
+                    info_time = info_elements[1 : ]
+                    CP56_time = bytes(int(x, 16) for x in info_time)
+                    parsed_time = parse_cp56time2a(CP56_time)                    
                     print(f'遥信信息元素{i+1}：{info_elements}')
                     #遍历时建立一个新列表，存储信息元素，以便最终返回值给外部功能使用
                     info_elements_list.append(info_elements)
+                    info_time_list.append(parsed_time)
         
             #遥测信息
             elif type_id == 9:     #归一化值
@@ -597,6 +608,7 @@ def parse_asdu(message, startbyte, isu):
                     CP56_time = bytes(int(x, 16) for x in info_time)
                     parsed_time = parse_cp56time2a(CP56_time)    #返回值为解析后各部分的字典变量
                     info_elements_list.append(info_elements)
+                    info_time_list.append(parsed_time)
 
             #切换定值区
             elif type_id == 200:     
@@ -617,7 +629,7 @@ def parse_asdu(message, startbyte, isu):
             print(f'U、S帧不解析信息元素')
 
 
-def parse_message(message, transmode):
+def parse_message_104(message, transmode):
     # 将报文分割成各个部分
     parts = message.split()
 
@@ -633,7 +645,7 @@ def parse_message(message, transmode):
         start_symbol1 = parts[0]
         print(f'起始符：{start_symbol1}')
 
-        message_length = parts[1]
+        message_length = int(parts[1], 16)
         print(f'APDU长度：{message_length}')
 
         control_field = parts[2:6]
@@ -647,15 +659,16 @@ def parse_message(message, transmode):
         asdu = parse_asdu(parts, startbyte, isu)         #返回值预留给读取ASDU使用
         
 
-# 主循环
-while True:
-    transmode = 0   #104为平衡传输模式
-    message = input('请输入报文（输入0结束）：')
-    print(f'      O       ')   
-    print(f'     /|\\     ')  
-    print(f'     / \\     ')
-    if message == '0':
-        break
-    parse_message(message, transmode)
-    print('')
-    print('')
+if __name__ == '__main__':
+    # 主循环
+    while True:
+        transmode = 0   #104为平衡传输模式
+        message = input('请输入报文（输入0结束）：')
+        print(f'      O       ')   
+        print(f'     /|\\     ')  
+        print(f'     / \\     ')
+        if message == '0':
+            break
+        parse_message_104(message, transmode)
+        print('')
+        print('')
