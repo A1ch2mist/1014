@@ -33,6 +33,23 @@ def parse_cp56time2a(byte_data):
     return parsed_time
 
 
+# 将十六进制列表转换为大端字节序的二进制字符串
+def hex_list_to_decimal(hex_list):
+    
+    binary_string = ''.join(format(int(byte, 16), '08b') for byte in hex_list[::-1])
+
+    # 解析符号位、指数位和尾数位，并计算十进制小数值
+    sign = int(binary_string[0])
+    exponent = int(binary_string[1:9], 2) - 127
+    fraction = 1 + int(binary_string[9:], 2) / (2 ** 23)
+    decimal_value = (-1) ** sign * fraction * (2 ** exponent)
+
+    # 保留小数点后6位，并采取四舍五入的方式
+    decimal_value_rounded = round(decimal_value, 6)
+
+    return decimal_value_rounded
+
+
 #解析控制域
 def parse_control_field(control_field, transmode):
     # 将控制域转换成二进制
@@ -100,6 +117,8 @@ def parse_asdu(message, startbyte, isu):
         info_elements = None
         info_object_address_list = []     #建立一个新列表，存储信息对象地址，以便最终返回值给外部功能使用->282行
         info_elements_list = []
+        info_time_list = []
+        actual_value_list = []
 
 
         # 解析ASDU类型标识符
@@ -342,7 +361,8 @@ def parse_asdu(message, startbyte, isu):
             elif type_id == 210:
                 info_object_address = [] 
                 info_elements = message[startbyte + 6 :]
-                print(f'信息对象：{info_elements}')
+                gapless_docinfo = ''.join(info_elements)
+                print(f'信息对象：{gapless_docinfo}')
                 info_object_address_list.append(info_object_address)
                 info_elements_list.append(info_elements)
 
@@ -369,20 +389,27 @@ def parse_asdu(message, startbyte, isu):
             #带时标单点信息或双点信息       
             elif type_id == 30 or type_id == 31:
                 for i in range(number_of_elements):
-                    info_object_address = message[startbyte + 8 + 10*i ]+message[startbyte + 7 + 10*i ]+message[startbyte + 6 + 10*i ]
-                    info_elements = message[startbyte + 9 + 10*i ]
+                    info_object_address = message[startbyte + 8 + 11*i ]+message[startbyte + 7 + 11*i ]+message[startbyte + 6 + 11*i ]
+                    info_elements = message[startbyte + 9 + 11*i ]                  
                     print(f'遥信信息对象 {i+1} 地址：{info_object_address}') 
                     print(f'信息元素 {i+1}：{info_elements}')
+                    info_time = message[startbyte + 10 + 11*i : startbyte + 17 + 11*i ]
+                    CP56_time = bytes(int(x, 16) for x in info_time)
+                    parsed_time = parse_cp56time2a(CP56_time)
                     info_object_address_list.append(info_object_address)
                     info_elements_list.append(info_elements)
+                    info_time_list.append(parsed_time)
 
             #遥测信息
             elif type_id == 9:     #归一化值
                 for i in range(number_of_elements):
-                    info_object_address = message[startbyte + 8 + 5*i ]+message[startbyte + 7 + 5*i ]+message[startbyte + 6 + 5*i ]
-                    info_elements = message[startbyte + 9 + 5*i : startbyte + 12 + 5*i ]        #减去地址后的信息长度
+                    info_object_address = message[startbyte + 8 + 6*i ]+message[startbyte + 7 + 6*i ]+message[startbyte + 6 + 6*i ]
+                    info_elements = message[startbyte + 9 + 6*i : startbyte + 12 + 6*i ]        #减去地址后的信息长度
                     print(f'遥测信息对象 {i+1} 地址：{info_object_address}') 
                     print(f'信息元素 {i+1}：归一化值：{info_elements[:2]}，品质描述词QDS：{info_elements[2]}')
+                    hex_info_elements = ''.join(info_elements[:2][::-1])
+                    int_info_elements = int(hex_info_elements, 16)
+                    print(f'码值：{int_info_elements}')
                     info_object_address_list.append(info_object_address)
                     info_elements_list.append(info_elements)
 
@@ -392,8 +419,11 @@ def parse_asdu(message, startbyte, isu):
                     info_elements = message[startbyte + 9 + 7*i : startbyte + 14 + 7*i ]
                     print(f'遥测信息对象 {i+1} 地址：{info_object_address}') 
                     print(f'信息元素 {i+1}：短浮点数：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}')
+                    actual_value = hex_list_to_decimal(info_elements[:4])
+                    print(f'实际值：{actual_value}')
                     info_object_address_list.append(info_object_address)
                     info_elements_list.append(info_elements)
+                    actual_value_list.append(actual_value)
 
             #遥控信息
             elif type_id == 45 or type_id == 46:     #单点或双点遥控
@@ -412,8 +442,11 @@ def parse_asdu(message, startbyte, isu):
                     info_elements = message[startbyte + 9 + 7*i : startbyte + 14 + 7*i]
                     print(f'电能量数据对象 {i+1} 地址：{info_object_address}') 
                     print(f'信息元素 {i+1}：短浮点数：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}')
+                    actual_value = hex_list_to_decimal(info_elements[:4])
+                    print(f'实际值：{actual_value}')
                     info_object_address_list.append(info_object_address)
-                    info_elements_list.append(info_elements)    
+                    info_elements_list.append(info_elements)  
+                    actual_value_list.append(actual_value)  
 
             #带时标电能量数据报文
             elif type_id == 207:     
@@ -422,11 +455,15 @@ def parse_asdu(message, startbyte, isu):
                     info_elements = message[startbyte + 9 + 14*i : startbyte + 21 + 14*i]
                     print(f'电能量数据对象 {i+1} 地址：{info_object_address}') 
                     print(f'信息元素 {i+1}：短浮点数：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}，时标 CP56Time2a：{info_elements[5:]}')
+                    actual_value = hex_list_to_decimal(info_elements[:4])
+                    print(f'实际值：{actual_value}')
                     info_time = info_elements[5:]
                     CP56_time = bytes(int(x, 16) for x in info_time)
                     parsed_time = parse_cp56time2a(CP56_time)    #返回值为解析后各部分的字典变量
                     info_object_address_list.append(info_object_address)
                     info_elements_list.append(info_elements)
+                    info_time_list.append(parsed_time)
+                    actual_value_list.append(actual_value)
 
             #切换定值区
             elif type_id == 200:     
@@ -512,7 +549,7 @@ def parse_asdu(message, startbyte, isu):
                         print(f'数据长度：{info_length}')
                         info_elements = message[startbyte + 14 + j: startbyte + 14 + info_length + j]
                         print(f'信息体{i+1}值：{info_elements}')                                             
-                        j = info_length + 5
+                        j += info_length + 5
                         info_object_address_list.append(info_object_address)
                         info_elements_list.append(info_elements)
                 else:
@@ -554,54 +591,71 @@ def parse_asdu(message, startbyte, isu):
             #不带时标单点信息或双点信息
             if type_id == 1 or type_id == 3:        
                 for i in range(number_of_elements):
-                    info_elements = message[startbyte + 8 + i ]
+                    info_elements = message[startbyte + 9 + i ]
                     print(f'遥信信息元素{i+1}：{info_elements}')
                     #遍历时建立一个新列表，存储信息元素，以便最终返回值给外部功能使用
                     info_elements_list.append(info_elements)
 
             if type_id == 30 or type_id == 31:        
                 for i in range(number_of_elements):
-                    info_elements = message[startbyte + 8 + 8*i ]
+                    info_elements = message[startbyte + 9 + 8*i : 16 ]
+                    info_time = info_elements[startbyte + 10 + 8*i : startbyte + 17 + 8*i ]
+                    CP56_time = bytes(int(x, 16) for x in info_time)
+                    parsed_time = parse_cp56time2a(CP56_time)                    
                     print(f'遥信信息元素{i+1}：{info_elements}')
                     #遍历时建立一个新列表，存储信息元素，以便最终返回值给外部功能使用
                     info_elements_list.append(info_elements)
+                    info_time_list.append(parsed_time)
         
             #遥测信息
             elif type_id == 9:     #归一化值
                 for i in range(number_of_elements):
-                    info_elements = message[startbyte + 8 + 3*i : startbyte + 11 + 3*i ]
+                    info_elements = message[startbyte + 9 + 3*i : startbyte + 12 + 3*i ]
                     print(f'遥测信息元素 {i+1}：归一化值：{info_elements[:2]}，品质描述词QDS：{info_elements[2]}')
+                    hex_info_elements = ''.join(info_elements[:2][::-1])
+                    int_info_elements = int(hex_info_elements, 16)
+                    print(f'码值：{int_info_elements}')
                     info_elements_list.append(info_elements)
 
             elif type_id == 13:     #短浮点数
                 for i in range(number_of_elements):
-                    info_elements = message[startbyte + 8 + 5*i : startbyte + 13 + 5*i ]
+                    info_elements = message[startbyte + 9 + 5*i : startbyte + 14 + 5*i ]
                     print(f'遥测信息元素 {i+1}：短浮点数：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}')
+                    actual_value = hex_list_to_decimal(info_elements[:4])
+                    print(f'实际值：{actual_value}')
                     info_elements_list.append(info_elements)
+                    actual_value_list.append(actual_value)
 
             #遥控在标准中只提了SQ=0的情形
 
             #不带时标电能量数据报文
             elif type_id == 206:     
                 for i in range(number_of_elements):
-                    info_elements = message[startbyte + 8 + 5*i : startbyte + 13 + 5*i]
+                    info_elements = message[startbyte + 9 + 5*i : startbyte + 14 + 5*i]
                     print(f'电能量数据元素 {i+1}：短浮点数：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}')
+                    actual_value = hex_list_to_decimal(info_elements[:4])
+                    print(f'实际值：{actual_value}')
                     info_elements_list.append(info_elements)
+                    actual_value_list.append(actual_value)
 
             #带时标电能量数据报文
             elif type_id == 207:     
                 for i in range(number_of_elements):
-                    info_elements = message[startbyte + 8 + 12*i : startbyte + 20 + 12*i]
+                    info_elements = message[startbyte + 9 + 12*i : startbyte + 21 + 12*i]
                     print(f'电能量数据元素 {i+1}：短浮点数：{info_elements[:4]}，品质描述词QDS：{info_elements[4]}，时标 CP56Time2a：{info_elements[5:]}')
+                    actual_value = hex_list_to_decimal(info_elements[:4])
+                    print(f'实际值：{actual_value}')
                     info_time = info_elements[5:]
                     CP56_time = bytes(int(x, 16) for x in info_time)
                     parsed_time = parse_cp56time2a(CP56_time)    #返回值为解析后各部分的字典变量
                     info_elements_list.append(info_elements)
+                    info_time_list.append(parsed_time)
+                    actual_value_list.append(actual_value)
 
             #切换定值区
             elif type_id == 200:     
                 for i in range(number_of_elements):
-                    info_elements = message[startbyte + 9 + 1*i ] + message[startbyte + 8 + 1*i ]
+                    info_elements = message[startbyte + 10 + 1*i ] + message[startbyte + 9 + 1*i ]
                     print(f'定值区号：{info_elements}')
                     info_elements_list.append(info_elements)
 
@@ -617,7 +671,7 @@ def parse_asdu(message, startbyte, isu):
             print(f'U、S帧不解析信息元素')
 
 
-def parse_message(message, transmode):
+def parse_message_104(message, transmode):
     # 将报文分割成各个部分
     parts = message.split()
 
@@ -633,29 +687,31 @@ def parse_message(message, transmode):
         start_symbol1 = parts[0]
         print(f'起始符：{start_symbol1}')
 
-        message_length = parts[1]
+        message_length = int(parts[1], 16)
         print(f'APDU长度：{message_length}')
 
         control_field = parts[2:6]
-        print(f'控制域：{control_field}')
+        gapless_control_field = ''.join(parts[2:6])
+        print(f'控制域：{gapless_control_field}')
         isu = parse_control_field(parts[2:6], transmode)
 
         message_asdu = parts[6:]
         gapless_asdu = ''.join(parts[6:])
-        print(f'应用服务数据单元：{gapless_asdu}')
+        # print(f'应用服务数据单元：{gapless_asdu}')
         startbyte = 6
         asdu = parse_asdu(parts, startbyte, isu)         #返回值预留给读取ASDU使用
         
 
-# 主循环
-while True:
-    transmode = 0   #104为平衡传输模式
-    message = input('请输入报文（输入0结束）：')
-    print(f'      O       ')   
-    print(f'     /|\\     ')  
-    print(f'     / \\     ')
-    if message == '0':
-        break
-    parse_message(message, transmode)
-    print('')
-    print('')
+if __name__ == '__main__':
+    # 主循环
+    while True:
+        transmode = 0   #104为平衡传输模式
+        message = input('请输入报文（输入0结束）：')
+        print(f'      O       ')   
+        print(f'     /|\\     ')  
+        print(f'     / \\     ')
+        if message == '0':
+            break
+        parse_message_104(message, transmode)
+        print('')
+        print('')
