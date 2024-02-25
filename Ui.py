@@ -35,7 +35,7 @@ class AppDemo(QtWidgets.QMainWindow):
         self.protocol = ""
 
         # 设置窗口初始大小
-        self.setGeometry(1000, 100, 720, 950)
+        self.setGeometry(1000, 100, 720, 700)
 
         # 设置窗口图标
         icon_path = get_path(r'UI\basketball.ico')
