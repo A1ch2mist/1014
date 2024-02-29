@@ -6,6 +6,8 @@ def parse_cp56time2a(byte_data):
     
     # 按照大端格式解析字节数据
     milliseconds = (byte_data[0] << 8) + byte_data[1]
+    seconds = milliseconds // 1000  # 毫秒转换为秒
+    milliseconds %= 1000  # 获取剩余的毫秒数
     minute = byte_data[2] & 0x3F
     iv_flag = (byte_data[2] & 0x80) >> 7
     hour = byte_data[3] & 0x1F
@@ -17,6 +19,7 @@ def parse_cp56time2a(byte_data):
     
     # 构建并返回一个包含解析时间的字典
     parsed_time = {
+        'seconds': seconds,
         'milliseconds': milliseconds,
         'minute': minute,
         'hour': hour,
@@ -28,7 +31,7 @@ def parse_cp56time2a(byte_data):
         'iv_flag': iv_flag
     }
     
-    print(f'{year+2000}/{month}/{day_of_month} {hour}:{minute}:{milliseconds}')
+    print(f'{year+2000}/{month}/{day_of_month} {hour}:{minute}:{seconds}.{milliseconds}')
 
     return parsed_time
 
@@ -599,7 +602,7 @@ def parse_asdu(message, startbyte):
                     constant_alue_area_code = message[startbyte + 7]+message[startbyte + 6]
                     info_object_address = []
                     info_elements = []
-                    print(f'定值区号：{info_elements}')
+                    print(f'定值区号：{constant_alue_area_code}')
                     info_object_address_list.append(info_object_address)
                     info_elements_list.append(info_elements)
 

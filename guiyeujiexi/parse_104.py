@@ -6,6 +6,8 @@ def parse_cp56time2a(byte_data):
     
     # 按照大端格式解析字节数据
     milliseconds = (byte_data[0] << 8) + byte_data[1]
+    seconds = milliseconds // 1000  # 毫秒转换为秒
+    milliseconds %= 1000  # 获取剩余的毫秒数
     minute = byte_data[2] & 0x3F
     iv_flag = (byte_data[2] & 0x80) >> 7
     hour = byte_data[3] & 0x1F
@@ -17,6 +19,7 @@ def parse_cp56time2a(byte_data):
     
     # 构建并返回一个包含解析时间的字典
     parsed_time = {
+        'seconds': seconds,
         'milliseconds': milliseconds,
         'minute': minute,
         'hour': hour,
@@ -28,9 +31,10 @@ def parse_cp56time2a(byte_data):
         'iv_flag': iv_flag
     }
     
-    print(f'{year+2000}/{month}/{day_of_month} {hour}:{minute}:{milliseconds}')
+    print(f'{year+2000}/{month}/{day_of_month} {hour}:{minute}:{seconds}.{milliseconds}')
 
     return parsed_time
+
 
 
 # 将十六进制列表转换为大端字节序的二进制字符串
@@ -276,10 +280,10 @@ def parse_asdu(message, startbyte, isu):
             bin_str = bin(int(hex_str, 16))[2:].zfill(8)
 
             # 解析各个字段
-            cont = int(bin_str[0], 2)  # CONT占据第1位
-            # res = int(bin_str[1:6], 2)  # 保留位
-            cr = int(bin_str[6], 2)     # CR占据第7位
-            se = int(bin_str[7], 2)     # S/E占据第8位
+            cont = int(bin_str[7], 2)  # CONT占据第1位
+            # res = int(bin_str[2:7], 2)  # 保留位
+            cr = int(bin_str[1], 2)     # CR占据第7位
+            se = int(bin_str[0], 2)     # S/E占据第8位
 
             if cont == 0:
                 print(f'CONT：{cont} , 无后续')
@@ -507,7 +511,7 @@ def parse_asdu(message, startbyte, isu):
                         constant_alue_area_code = message[startbyte + 7]+message[startbyte + 6]
                         info_object_address = []
                         info_elements = []
-                        print(f'定值区号：{info_elements}')
+                        print(f'定值区号：{constant_alue_area_code}')
                         info_object_address_list.append(info_object_address)
                         info_elements_list.append(info_elements)
 
@@ -527,7 +531,7 @@ def parse_asdu(message, startbyte, isu):
                         print(f'数据长度：{info_length}')
                         info_elements = message[startbyte + 14 +j: startbyte + 14 + info_length + j]
                         print(f'信息体{i+1}值：{info_elements}')                                             
-                        j = info_length + 5
+                        j += info_length + 5
                         info_object_address_list.append(info_object_address)
                         info_elements_list.append(info_elements)
 
